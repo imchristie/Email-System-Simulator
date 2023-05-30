@@ -1,0 +1,397 @@
+#
+# CSE186 Assignment 8 Backend
+#
+
+openapi: '3.0.3'
+
+info:
+  description: CSE186 Assignment 8 Backend
+  version: 0.1.0
+  title: CSE186 Assignment 8 Backend
+
+servers:
+  - url: http://localhost:3010/v0
+
+paths:
+  /login:
+    post:
+      description: Login
+      requestBody:
+        description: Request Body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        200:
+          description: Login Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: Unexpected Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /mailbox:
+    get:
+      security:
+        - bearerAuth: []         
+      description: Returns all mailbox names and number of unreads/starred/draft
+      responses:
+        200:
+          description: Mails Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Mailboxes'
+        default:
+          description: Unexpected Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /mail:
+    get:
+      security:
+        - bearerAuth: []         
+      description: Returns all mails
+      parameters:
+      - in: query
+        name: mailbox
+        schema:
+          type: string
+        required: false
+        description: Mailbox name
+      - in: query
+        name: search
+        schema:
+          type: string
+        required: false
+        description: Search
+      responses:
+        200:
+          description: Mails Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mailbox'
+        default:
+          description: Unexpected Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      security:
+        - bearerAuth: [] 
+      description: Saves a new email
+      requestBody:
+        description: Application to add
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewMail'
+      responses:
+        201:
+          description: Application response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mail'
+        400:
+          description: Invalid properties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /mail/{id}:
+    get:
+      security:
+        - bearerAuth: []  
+      description: Returns the email identified by id
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+        description: Mail id
+      responses:
+        200:
+          description: Email Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mail'
+        404:
+          description: Not Found 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'       
+    put:
+      security:
+        - bearerAuth: []  
+      description: Moves the email identified by id into the named mailbox
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+        description: Mail id
+      - in: query
+        name: mailbox
+        schema:
+          type: string
+        required: true
+        description: Mailbox name
+      responses:
+        204:
+          description: Email Response
+        404:
+          description: Id Not Found 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        409:
+          description: Invalid Mailbox
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+  /star/{id}:
+    post:         
+      security:
+        - bearerAuth: []  
+      description: Star or unstar the email
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+        description: Mail id
+      responses:
+        204:
+          description: Email Response
+        404:
+          description: Not Found 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /read/{id}:
+    post:         
+      security:
+        - bearerAuth: []  
+      description: Read or Unread the email
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+        description: Mail id
+      responses:
+        204:
+          description: Email Response
+        404:
+          description: Not Found 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'              
+components:
+  schemas:
+    Error:
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+      required:
+        - code
+        - message
+
+    Credentials:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    Mailboxes:
+      type: object
+      properties:
+        mailbox:
+          type: string
+        count:
+          type: number
+      required:
+        - mailbox
+        - count
+
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+        accessToken:
+          type: string
+      required:
+        - name
+        - accessToken
+
+    Mailbox:
+      type: array
+      items:
+        $ref: '#/components/schemas/MailboxMail'
+
+    MailboxMail:
+      type: object
+      additionalProperties: false
+      properties:
+        star:
+          type: number
+        unread:
+          type: number
+        id:
+          type: string
+        name:
+          type: string
+        to:
+          type: object
+          properties:
+            name:
+              type: string
+            email: 
+              type: string
+          required:
+            - name
+            - email
+        from:
+          type: object
+          properties:
+            name:
+              type: string
+            email: 
+              type: string
+          required:
+            - name
+            - email
+        content:
+          type: string
+        subject: 
+          type: string
+        received: 
+          type: string
+        sent: 
+          type: string
+      required:
+        - name
+        - id
+        - to
+        - from
+        - content
+        - subject
+        - sent
+        - received
+
+    Mail:
+      type: object
+      additionalProperties: false
+      properties:
+        mailbox:
+          type: string
+        star:
+          type: number
+        unread:
+          type: number
+        id:
+          type: string
+        name:
+          type: string
+        to:
+          type: object
+          properties:
+            name:
+              type: string
+            email: 
+              type: string
+          required:
+            - name
+            - email
+        from:
+          type: object
+          properties:
+            name:
+              type: string
+            email: 
+              type: string
+          required:
+            - name
+            - email
+        content:
+          type: string
+        subject: 
+          type: string
+        received: 
+          type: string
+        sent: 
+          type: string
+      required:
+        - mailbox
+        - name
+        - id
+        - to
+        - from
+        - content
+        - subject
+        - sent
+        - received
+
+    NewMail:
+      type: object
+      properties:
+        subject: 
+          type: string
+        content: 
+          type: string
+        to: 
+          type: object
+          properties:
+            name:
+              type: string
+            email: 
+              type: string
+          required:
+            - name
+            - email
+      required:
+        - subject
+        - content
+        - to
+
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT    # optional, arbitrary value for documentation purposes
